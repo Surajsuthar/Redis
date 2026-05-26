@@ -41,7 +41,7 @@ func readCammand(conn io.ReadWriter) (*core.RedisCmds, error) {
 	}
 
 	var cmds []*core.RedisCLI = make([]*core.RedisCLI, 0)
-	for _ , obj := val {
+	for _, obj := val {
 		token, err := toArrayString(obj.([]interface{}))
 		if err != nil {
 			return  nil, err
