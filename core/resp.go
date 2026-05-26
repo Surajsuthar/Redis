@@ -81,31 +81,40 @@ func DecodeOne(data []byte) (interface{}, int, error) {
 	return nil, 0, nil
 }
 
-func Decode(data []byte) (interface{}, error) {
+func Decode(data []byte) ([]interface{}, error) {
 	if len(data) == 0 {
 		return nil, errors.New("No data")
 	}
-	val, _, err := DecodeOne(data)
-	if err != nil {
-		return nil, err
+
+	var value []interface{} = make([]interface{}, 0)
+	var index int = 0
+
+	for index < len(data) {
+		val, gap, err := DecodeOne(data[index:])
+		if err != nil {
+			return value, err
+		}
+		index = index + gap
+		value = append(value, val)
 	}
-	return val, nil
+
+	return value, nil
 }
 
-func DecodeArrayString(data []byte) ([]string, error) {
-	value, err := Decode(data)
-	if err != nil {
-		return nil, err
-	}
+// func DecodeArrayString(data []byte) ([]string, error) {s
+// 	value, err := Decode(data)
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	ts := value.([]interface{})
-	token := make([]string, len(ts))
-	for i := range token {
-		token[i] = ts[i].(string)
-	}
+// 	ts := value.([]interface{})
+// 	token := make([]string, len(ts))
+// 	for i := range token {
+// 		token[i] = ts[i].(string)
+// 	}
 
-	return token, nil
-}
+// 	return token, nil
+// }
 
 func Encode(value interface{}, isSimple bool) []byte {
 	switch v := value.(type) {
@@ -116,6 +125,8 @@ func Encode(value interface{}, isSimple bool) []byte {
 		return []byte(fmt.Sprintf("$%d\r\n%s\r\n", len(v), v))
 	case int, int8, int16, int32, int64:
 		return []byte(fmt.Sprintf(":%d\r\n", v))
+	case error:
+		return []byte(fmt.Sprintf("-%s\r\n", v))
 	case nil:
 		return []byte("$-1\r\n")
 	}

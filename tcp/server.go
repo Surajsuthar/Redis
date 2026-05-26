@@ -20,34 +20,48 @@ var (
 	lastCronExTime time.Time     = time.Now()
 )
 
-func readCammand(conn io.ReadWriter) (*core.RedisCLI, error) {
+func toArrayString(token []interface{}) ([]string, error) {
+	as := make([]string, len(token))
+	for i := range as {
+		as[i] = as[i].(string)
+	}
+	return as, nil
+}
+
+func readCammand(conn io.ReadWriter) (*core.RedisCmds, error) {
 	var message []byte = make([]byte, 512)
 	noOfBytes, err := conn.Read(message[:])
 	if err != nil {
 		return nil, err
 	}
 
-	token, err := core.DecodeArrayString(message[:noOfBytes])
+	val, err := core.Decode(message[:noOfBytes])
 	if err != nil {
 		return nil, err
 	}
 
-	return &core.RedisCLI{
-		Cmd:  strings.ToUpper(token[0]),
-		Args: token[1:],
-	}, nil
+	var cmds []*core.RedisCLI = make([]*core.RedisCLI, 0)
+	for _ , obj := val {
+		token, err := toArrayString(obj.([]interface{}))
+		if err != nil {
+			return  nil, err
+		}
+
+		cmds := append(cmds, &core.RedisCLI{
+			Cmd: strings.ToUpper(token[0]),
+			Args: token[1:],
+		})
+	}
+
+	return cmds, nil
 }
 
 func resondError(err error, conn io.ReadWriter) {
 	conn.Write([]byte(fmt.Sprintf("-%s\r\n", err)))
 }
 
-func respond(cmd *core.RedisCLI, conn io.ReadWriter) {
+func respond(cmd *core.RedisCmds, conn io.ReadWriter) {
 	err := core.EvalAndRespond(cmd, conn)
-	fmt.Println("err", err)
-	if err != nil {
-		resondError(err, conn)
-	}
 }
 
 func Handler() {
@@ -164,7 +178,7 @@ func acceptConnection(listenerFD int) (int, error) {
 func handleClient(fd int) {
 	// FDConn adapts the raw descriptor to the io.ReadWriter command path.
 	conn := core.NewFDConn(fd)
-	cmd, err := readCammand(conn)
+	cmds, err := readCammand(conn)
 	if err != nil {
 		syscall.Close(fd)
 		if err == io.EOF {
@@ -174,5 +188,5 @@ func handleClient(fd int) {
 		return
 	}
 
-	respond(cmd, conn)
+	respond(cmds, conn)
 }
