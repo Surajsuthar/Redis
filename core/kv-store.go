@@ -1,6 +1,10 @@
 package core
 
-import "time"
+import (
+	"time"
+
+	"github.com/Surajsuthar/go-redis/config"
+)
 
 var store map[string]*Obj
 
@@ -26,6 +30,8 @@ func NewObj(value interface{}, durationMs int64) *Obj {
 }
 
 func PUT(key string, obj *Obj) {
+	if len(store) >= config.MaxStoreSize {
+	}
 	store[key] = obj
 }
 
