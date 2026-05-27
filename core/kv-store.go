@@ -30,6 +30,10 @@ func PUT(key string, obj *Obj) {
 		evict()
 	}
 	store[key] = obj
+	if keyspaceStat[0] == nil {
+		keyspaceStat[0] = make(map[string]int)
+	}
+	keyspaceStat[0]["key"]++
 }
 
 func GET(key string) *Obj {
@@ -47,6 +51,9 @@ func DEL(key string) bool {
 	_, exits := store[key]
 	if exits {
 		delete(store, key)
+		if keyspaceStat[0] != nil {
+			keyspaceStat[0]["key"]--
+		}
 		return true
 	}
 	return false

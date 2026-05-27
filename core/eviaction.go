@@ -10,6 +10,15 @@ func evictSimpleFirst() {
 }
 
 func evictAllKeyRandom() {
+	evictCount := int64(config.EvicationRatio * float64(config.KeyLimit))
+
+	for key := range store {
+		DEL(key)
+		evictCount--
+		if evictCount <= 0 {
+			break
+		}
+	}
 }
 
 func evict() {
