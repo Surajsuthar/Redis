@@ -1,6 +1,7 @@
 package core
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 )
@@ -101,6 +102,10 @@ func Decode(data []byte) ([]interface{}, error) {
 	return value, nil
 }
 
+func encodeString(v string) []byte {
+	return []byte(fmt.Sprintf("$%d\r\n%s\r\n", len(v), v))
+}
+
 // func DecodeArrayString(data []byte) ([]string, error) {s
 // 	value, err := Decode(data)
 // 	if err != nil {
@@ -127,6 +132,13 @@ func Encode(value interface{}, isSimple bool) []byte {
 		return []byte(fmt.Sprintf(":%d\r\n", v))
 	case error:
 		return []byte(fmt.Sprintf("-%s\r\n", v))
+	case []string:
+		var b []byte
+		buf := bytes.NewBuffer(b)
+		for _, s := range value.([]string) {
+			buf.Write(encodeString(s))
+		}
+		return []byte(fmt.Sprintf("*d\r\n%s", len(v), v))
 	case nil:
 		return []byte("$-1\r\n")
 	}

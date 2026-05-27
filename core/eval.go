@@ -132,6 +132,11 @@ func evalEXPIRE(args []string, conn io.ReadWriter) []byte {
 	return []byte(":1\r\n")
 }
 
+func evalBGREWRITEAOF(args []string, conn io.ReadWriter) []byte {
+	dumpAllAOF()
+	return []byte(":1\r\n")
+}
+
 func EvalAndRespond(cmd *RedisCmds, conn io.ReadWriter) {
 	var response []byte
 	buf := bytes.NewBuffer(response)
@@ -150,6 +155,8 @@ func EvalAndRespond(cmd *RedisCmds, conn io.ReadWriter) {
 			buf.Write(evalDEL(c.Args, conn))
 		case "EXPIRE":
 			buf.Write(evalEXPIRE(c.Args, conn))
+		case "BGREWRITEAOF":
+			buf.Write(evalBGREWRITEAOF(c.Args, conn))
 		default:
 			buf.Write(evalPing(c.Args, conn))
 		}
