@@ -39,12 +39,12 @@ func evalSet(args []string, conn io.ReadWriter) []byte {
 			if i == len(args) {
 				return Encode(errors.New("(Error) syntax error"), false)
 			}
-			onDurationOnSec, err := strconv.ParseInt(args[3], 10, 64)
+			onDurationOnSec, err := strconv.ParseInt(args[i], 10, 64)
 			if err != nil {
 				return Encode(errors.New("(Error) value is not integer or out of range"), false)
 			}
 
-			onDurationOnMs = onDurationOnSec * 100
+			onDurationOnMs = onDurationOnSec * 1000
 
 		default:
 			return Encode(errors.New("(Error) syntax error"), false)
@@ -67,7 +67,7 @@ func evalGet(args []string, conn io.ReadWriter) []byte {
 		return []byte("$-1\r\n")
 	}
 
-	if obj.ExpireAt != -1 || obj.ExpireAt <= time.Now().Local().UnixMilli() {
+	if obj.ExpireAt != -1 && obj.ExpireAt <= time.Now().Local().UnixMilli() {
 		return []byte("$-1\r\n")
 	}
 
@@ -127,7 +127,7 @@ func evalEXPIRE(args []string, conn io.ReadWriter) []byte {
 	if obj == nil {
 		return []byte("$0\r\n")
 	}
-	obj.ExpireAt = time.Now().UnixMilli() + exDuruation*100
+	obj.ExpireAt = time.Now().UnixMilli() + exDuruation*1000
 
 	return []byte(":1\r\n")
 }

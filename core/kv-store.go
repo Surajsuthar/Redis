@@ -38,7 +38,7 @@ func PUT(key string, obj *Obj) {
 func GET(key string) *Obj {
 	v := store[key]
 	if v != nil {
-		if v.ExpireAt <= time.Now().UnixMilli() {
+		if v.ExpireAt != -1 && v.ExpireAt <= time.Now().UnixMilli() {
 			delete(store, key)
 			return nil
 		}

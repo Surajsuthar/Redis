@@ -23,7 +23,7 @@ var (
 func toArrayString(token []interface{}) ([]string, error) {
 	as := make([]string, len(token))
 	for i := range as {
-		as[i] = as[i].(string)
+		as[i] = token[i].(string)
 	}
 	return as, nil
 }
@@ -40,20 +40,20 @@ func readCammand(conn io.ReadWriter) (*core.RedisCmds, error) {
 		return nil, err
 	}
 
-	var cmds []*core.RedisCLI = make([]*core.RedisCLI, 0)
-	for _, obj := val {
+	var cmds core.RedisCmds = make(core.RedisCmds, 0)
+	for _, obj := range val {
 		token, err := toArrayString(obj.([]interface{}))
 		if err != nil {
-			return  nil, err
+			return nil, err
 		}
 
-		cmds := append(cmds, &core.RedisCLI{
-			Cmd: strings.ToUpper(token[0]),
+		cmds = append(cmds, core.RedisCLI{
+			Cmd:  strings.ToUpper(token[0]),
 			Args: token[1:],
 		})
 	}
 
-	return cmds, nil
+	return &cmds, nil
 }
 
 func resondError(err error, conn io.ReadWriter) {
@@ -61,7 +61,7 @@ func resondError(err error, conn io.ReadWriter) {
 }
 
 func respond(cmd *core.RedisCmds, conn io.ReadWriter) {
-	err := core.EvalAndRespond(cmd, conn)
+	core.EvalAndRespond(cmd, conn)
 }
 
 func Handler() {
@@ -135,7 +135,8 @@ func eventLoop(kq int, listenerFD int) {
 
 	for {
 		if time.Now().After(lastCronExTime.Add(cronFrequency)) {
-			//
+			// Periodically clear expired keys without making each event wait on a full scan.
+			core.DeletionExpireKey()
 			lastCronExTime = time.Now()
 		}
 		// Passing nil changes means this call only waits for triggered events.
