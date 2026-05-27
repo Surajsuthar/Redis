@@ -10,7 +10,7 @@ import (
 )
 
 func dumpKey(fp *os.File, key string, obj *Obj) {
-	cmd := fmt.Sprintf("SET %s %s", key, obj.Value)
+	cmd := fmt.Sprintf("SET %s %s", key, obj.value)
 	tokens := strings.Split(cmd, " ")
 	fp.Write(Encode(tokens, false))
 }

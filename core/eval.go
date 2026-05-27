@@ -31,6 +31,7 @@ func evalSet(args []string, conn io.ReadWriter) []byte {
 	var onDurationOnMs int64 = -1
 
 	key, value = args[0], args[1]
+	te, e := deduceTyeEncoding(value)
 
 	for i := 2; i < len(args); i++ {
 		switch args[i] {
@@ -51,7 +52,7 @@ func evalSet(args []string, conn io.ReadWriter) []byte {
 		}
 	}
 
-	PUT(key, NewObj(value, onDurationOnMs))
+	PUT(key, NewObj(value, onDurationOnMs, te, e))
 	return []byte("+Ok\r\n")
 }
 
@@ -71,7 +72,7 @@ func evalGet(args []string, conn io.ReadWriter) []byte {
 		return []byte("$-1\r\n")
 	}
 
-	return Encode(obj.Value, false)
+	return Encode(obj.value, false)
 }
 
 func evalTTL(args []string, conn io.ReadWriter) []byte {
@@ -137,6 +138,33 @@ func evalBGREWRITEAOF(args []string, conn io.ReadWriter) []byte {
 	return []byte(":1\r\n")
 }
 
+func evalINCR(args []string, conn io.ReadWriter) []byte {
+	if len(args) != 1 {
+		return Encode(errors.New("(Error) wrong number of arguments"), false)
+	}
+
+	var key string = args[0]
+	obj := GET(key)
+
+	if obj == nil {
+		obj = NewObj("0", -1, OBJ_TYPE_STRING, OBJ_ENCODING_INT)
+		PUT(key, obj)
+	}
+
+	if err := assertType(obj.TypeEncoding, OBJ_TYPE_STRING); err != nil {
+		return Encode(err, false)
+	}
+
+	if err := assertEocoding(obj.TypeEncoding, OBJ_ENCODING_INT); err != nil {
+		return Encode(err, false)
+	}
+	i, _ := strconv.ParseInt(obj.value.(string), 10, 64)
+	i++
+	obj.value = strconv.FormatInt(i, 10)
+
+	return Encode(i, false)
+}
+
 func EvalAndRespond(cmd *RedisCmds, conn io.ReadWriter) {
 	var response []byte
 	buf := bytes.NewBuffer(response)
@@ -157,6 +185,8 @@ func EvalAndRespond(cmd *RedisCmds, conn io.ReadWriter) {
 			buf.Write(evalEXPIRE(c.Args, conn))
 		case "BGREWRITEAOF":
 			buf.Write(evalBGREWRITEAOF(c.Args, conn))
+		case "INCR":
+			buf.Write(evalINCR(c.Args, conn))
 		default:
 			buf.Write(evalPing(c.Args, conn))
 		}

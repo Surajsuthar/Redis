@@ -8,29 +8,26 @@ import (
 
 var store map[string]*Obj
 
-type Obj struct {
-	Value    interface{}
-	ExpireAt int64
-}
-
 func init() {
 	store = make(map[string]*Obj)
 }
 
-func NewObj(value interface{}, durationMs int64) *Obj {
+func NewObj(value interface{}, durationMs int64, te uint8, e uint8) *Obj {
 	var expireAt int64 = -1
 	if durationMs > 0 {
 		expireAt = durationMs + time.Now().UnixMilli()
 	}
 
 	return &Obj{
-		Value:    value,
-		ExpireAt: expireAt,
+		TypeEncoding: te | e,
+		value:        value,
+		ExpireAt:     expireAt,
 	}
 }
 
 func PUT(key string, obj *Obj) {
 	if len(store) >= config.MaxStoreSize {
+		evict()
 	}
 	store[key] = obj
 }
@@ -38,7 +35,7 @@ func PUT(key string, obj *Obj) {
 func GET(key string) *Obj {
 	v := store[key]
 	if v != nil {
-		if v.ExpireAt != -1 && v.ExpireAt <= time.Now().UnixMilli() {
+		if v.ExpireAt <= time.Now().UnixMilli() {
 			delete(store, key)
 			return nil
 		}
