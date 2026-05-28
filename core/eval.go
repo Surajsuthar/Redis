@@ -4,6 +4,7 @@ package core
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"strconv"
 	"time"
@@ -174,6 +175,29 @@ func evalINCR(args []string, conn io.ReadWriter) []byte {
 	return Encode(i, false)
 }
 
+func evalINFO(args []string, conn io.ReadWriter) []byte {
+	if len(args) != 1 {
+		return Encode(errors.New("(Error) wrong number of arguments"), false)
+	}
+
+	var info []byte
+	buf := bytes.NewBuffer(info)
+	buf.WriteString("# keyspace \r\n")
+
+	for i := range keyspaceStat {
+		buf.Write([]byte(fmt.Sprintf("db%d:keys=%d, expires=0, avg_ttl=0\r\t", i, keyspaceStat[i]["keys"])))
+	}
+	return Encode(buf.String(), false)
+}
+
+func evalCLIENT(args []string, conn io.ReadWriter) []byte {
+	return []byte(":1\r\n")
+}
+
+func evalLATENCY(args []string, conn io.ReadWriter) []byte {
+	return []byte(":1\r\n")
+}
+
 // EvalAndRespond evaluates a batch of commands and writes one combined response.
 func EvalAndRespond(cmd *RedisCmds, conn io.ReadWriter) {
 	var response []byte
@@ -197,6 +221,12 @@ func EvalAndRespond(cmd *RedisCmds, conn io.ReadWriter) {
 			buf.Write(evalBGREWRITEAOF(c.Args, conn))
 		case "INCR":
 			buf.Write(evalINCR(c.Args, conn))
+		case "INFO":
+			buf.Write(evalINFO(c.Args, conn))
+		case "CLIENT":
+			buf.Write(evalCLIENT(c.Args, conn))
+		case "LATENCY":
+			buf.Write(evalLATENCY(c.Args, conn))
 		default:
 			buf.Write(evalPing(c.Args, conn))
 		}
