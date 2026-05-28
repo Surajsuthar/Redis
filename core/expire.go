@@ -1,3 +1,4 @@
+// Expiration utilities for deleting keys whose TTL has passed.
 package core
 
 import (
@@ -5,6 +6,7 @@ import (
 	"time"
 )
 
+// ExpireSmple samples a small group of expiring keys and removes stale ones.
 func ExpireSmple() float32 {
 	var limit int = 20
 	var expriedCount int = 0
@@ -27,6 +29,7 @@ func ExpireSmple() float32 {
 	return float32(expriedCount) / float32(20.0)
 }
 
+// DeletionExpireKey repeats expiration sampling while many sampled keys expire.
 func DeletionExpireKey() {
 	for {
 		frq := ExpireSmple()

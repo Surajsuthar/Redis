@@ -1,3 +1,4 @@
+// In-memory key store operations used by command evaluation.
 package core
 
 import (
@@ -12,6 +13,7 @@ func init() {
 	store = make(map[string]*Obj)
 }
 
+// NewObj creates a store object and translates a duration into an expiry time.
 func NewObj(value interface{}, durationMs int64, te uint8, e uint8) *Obj {
 	var expireAt int64 = -1
 	if durationMs > 0 {
@@ -25,6 +27,7 @@ func NewObj(value interface{}, durationMs int64, te uint8, e uint8) *Obj {
 	}
 }
 
+// PUT stores or replaces a key and updates keyspace statistics.
 func PUT(key string, obj *Obj) {
 	if len(store) >= config.MaxStoreSize {
 		evict()
@@ -36,10 +39,11 @@ func PUT(key string, obj *Obj) {
 	keyspaceStat[0]["key"]++
 }
 
+// GET returns a key if it exists and has not expired.
 func GET(key string) *Obj {
 	v := store[key]
 	if v != nil {
-		if v.ExpireAt <= time.Now().UnixMilli() {
+		if v.ExpireAt != -1 && v.ExpireAt <= time.Now().UnixMilli() {
 			delete(store, key)
 			return nil
 		}
@@ -47,6 +51,7 @@ func GET(key string) *Obj {
 	return v
 }
 
+// DEL removes a key and reports whether it existed.
 func DEL(key string) bool {
 	_, exits := store[key]
 	if exits {

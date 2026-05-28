@@ -1,3 +1,4 @@
+// Command evaluation for Redis-like commands supported by this server.
 package core
 
 import (
@@ -8,6 +9,7 @@ import (
 	"time"
 )
 
+// evalPing handles PING with optional echo payload.
 func evalPing(args []string, conn io.ReadWriter) []byte {
 	if len(args) >= 2 {
 		return Encode(errors.New("Err wrong number of cammand for ping cammand"), false)
@@ -22,6 +24,7 @@ func evalPing(args []string, conn io.ReadWriter) []byte {
 	return b
 }
 
+// evalSet stores a string value and optionally attaches an EX expiry.
 func evalSet(args []string, conn io.ReadWriter) []byte {
 	if len(args) <= 1 {
 		return Encode(errors.New("(Error) wroung number of argument to set"), false)
@@ -56,6 +59,7 @@ func evalSet(args []string, conn io.ReadWriter) []byte {
 	return []byte("+Ok\r\n")
 }
 
+// evalGet returns the stored value for a key or a RESP nil bulk string.
 func evalGet(args []string, conn io.ReadWriter) []byte {
 	if len(args) != 1 {
 		return Encode(errors.New("(Error) wroung number of argument to set"), false)
@@ -75,6 +79,7 @@ func evalGet(args []string, conn io.ReadWriter) []byte {
 	return Encode(obj.value, false)
 }
 
+// evalTTL returns the remaining lifetime of a key in whole seconds.
 func evalTTL(args []string, conn io.ReadWriter) []byte {
 	if len(args) != 1 {
 		return Encode(errors.New("(Error) wroung number of argument to set"), false)
@@ -100,6 +105,7 @@ func evalTTL(args []string, conn io.ReadWriter) []byte {
 	return Encode(int(duration/1000), false)
 }
 
+// evalDEL deletes all requested keys and returns the number removed.
 func evalDEL(args []string, conn io.ReadWriter) []byte {
 	var countdelete int = 0
 
@@ -112,6 +118,7 @@ func evalDEL(args []string, conn io.ReadWriter) []byte {
 	return Encode(countdelete, false)
 }
 
+// evalEXPIRE attaches a new expiry time to an existing key.
 func evalEXPIRE(args []string, conn io.ReadWriter) []byte {
 	if len(args) <= 1 {
 		return Encode(errors.New("(Error) wroung number of argument to set"), false)
@@ -133,11 +140,13 @@ func evalEXPIRE(args []string, conn io.ReadWriter) []byte {
 	return []byte(":1\r\n")
 }
 
+// evalBGREWRITEAOF rewrites the append-only file from the current store.
 func evalBGREWRITEAOF(args []string, conn io.ReadWriter) []byte {
 	dumpAllAOF()
 	return []byte(":1\r\n")
 }
 
+// evalINCR increments an integer-encoded string value.
 func evalINCR(args []string, conn io.ReadWriter) []byte {
 	if len(args) != 1 {
 		return Encode(errors.New("(Error) wrong number of arguments"), false)
@@ -165,6 +174,7 @@ func evalINCR(args []string, conn io.ReadWriter) []byte {
 	return Encode(i, false)
 }
 
+// EvalAndRespond evaluates a batch of commands and writes one combined response.
 func EvalAndRespond(cmd *RedisCmds, conn io.ReadWriter) {
 	var response []byte
 	buf := bytes.NewBuffer(response)

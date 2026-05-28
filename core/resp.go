@@ -1,3 +1,4 @@
+// RESP helpers for encoding Redis responses and decoding client commands.
 package core
 
 import (
@@ -6,6 +7,7 @@ import (
 	"fmt"
 )
 
+// readSimpleString parses a RESP simple string and returns its byte width.
 func readSimpleString(data []byte) (string, int, error) {
 	pos := 1
 	for ; data[pos] != '\r'; pos++ {
@@ -13,10 +15,12 @@ func readSimpleString(data []byte) (string, int, error) {
 	return string(data[1:pos]), pos + 2, nil
 }
 
+// readError parses RESP error payloads, which share the simple string layout.
 func readError(data []byte) (string, int, error) {
 	return readSimpleString(data)
 }
 
+// readInt parses a RESP integer and returns its byte width.
 func readInt(data []byte) (int, int, error) {
 	pos := 1
 	var value int = 0
@@ -26,6 +30,7 @@ func readInt(data []byte) (int, int, error) {
 	return value, pos + 2, nil
 }
 
+// readLen reads a decimal RESP length prefix up to the first non-digit byte.
 func readLen(data []byte) (int, int) {
 	pos, len := 0, 0
 	for pos = range data {
@@ -37,6 +42,7 @@ func readLen(data []byte) (int, int) {
 	return 0, 0
 }
 
+// readBulkString parses a RESP bulk string body after its length prefix.
 func readBulkString(data []byte) (string, int, error) {
 	pos := 1
 	len, gap := readLen(data[pos:])
@@ -44,6 +50,7 @@ func readBulkString(data []byte) (string, int, error) {
 	return string(data[pos:(pos + len)]), pos + len + 2, nil
 }
 
+// readArray parses a RESP array by recursively decoding each element.
 func readArray(data []byte) (interface{}, int, error) {
 	pos := 1
 	len, delta := readLen(data[pos:])
@@ -63,6 +70,7 @@ func readArray(data []byte) (interface{}, int, error) {
 	return elems, pos, nil
 }
 
+// DecodeOne decodes the first RESP value in data.
 func DecodeOne(data []byte) (interface{}, int, error) {
 	if len(data) == 0 {
 		return nil, 0, errors.New("No data")
@@ -82,6 +90,7 @@ func DecodeOne(data []byte) (interface{}, int, error) {
 	return nil, 0, nil
 }
 
+// Decode decodes one or more RESP values from a command buffer.
 func Decode(data []byte) ([]interface{}, error) {
 	if len(data) == 0 {
 		return nil, errors.New("No data")
@@ -102,6 +111,7 @@ func Decode(data []byte) ([]interface{}, error) {
 	return value, nil
 }
 
+// encodeString serializes a string as a RESP bulk string.
 func encodeString(v string) []byte {
 	return []byte(fmt.Sprintf("$%d\r\n%s\r\n", len(v), v))
 }
@@ -121,6 +131,7 @@ func encodeString(v string) []byte {
 // 	return token, nil
 // }
 
+// Encode serializes supported Go values into RESP response bytes.
 func Encode(value interface{}, isSimple bool) []byte {
 	switch v := value.(type) {
 	case string:
@@ -133,12 +144,11 @@ func Encode(value interface{}, isSimple bool) []byte {
 	case error:
 		return []byte(fmt.Sprintf("-%s\r\n", v))
 	case []string:
-		var b []byte
-		buf := bytes.NewBuffer(b)
+		buf := bytes.NewBuffer([]byte(fmt.Sprintf("*%d\r\n", len(v))))
 		for _, s := range value.([]string) {
 			buf.Write(encodeString(s))
 		}
-		return []byte(fmt.Sprintf("*d\r\n%s", len(v), v))
+		return buf.Bytes()
 	case nil:
 		return []byte("$-1\r\n")
 	}

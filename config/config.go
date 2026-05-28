@@ -1,3 +1,4 @@
+// Runtime configuration for networking, persistence, and eviction.
 package config
 
 const (

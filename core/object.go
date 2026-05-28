@@ -1,3 +1,4 @@
+// Redis object representation and encoding constants.
 package core
 
 type Obj struct {

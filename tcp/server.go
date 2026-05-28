@@ -1,6 +1,7 @@
 //go:build darwin || freebsd || netbsd || openbsd
 // +build darwin freebsd netbsd openbsd
 
+// TCP server and kqueue event loop for accepting RESP clients.
 package tcp
 
 import (
@@ -20,6 +21,7 @@ var (
 	lastCronExTime time.Time     = time.Now()
 )
 
+// toArrayString converts a decoded RESP command array into string tokens.
 func toArrayString(token []interface{}) ([]string, error) {
 	as := make([]string, len(token))
 	for i := range as {
@@ -28,6 +30,7 @@ func toArrayString(token []interface{}) ([]string, error) {
 	return as, nil
 }
 
+// readCammand reads bytes from a client and parses one or more Redis commands.
 func readCammand(conn io.ReadWriter) (*core.RedisCmds, error) {
 	var message []byte = make([]byte, 512)
 	noOfBytes, err := conn.Read(message[:])
@@ -56,14 +59,17 @@ func readCammand(conn io.ReadWriter) (*core.RedisCmds, error) {
 	return &cmds, nil
 }
 
+// resondError writes an error response to the client connection.
 func resondError(err error, conn io.ReadWriter) {
 	conn.Write([]byte(fmt.Sprintf("-%s\r\n", err)))
 }
 
+// respond evaluates parsed commands and writes their RESP output.
 func respond(cmd *core.RedisCmds, conn io.ReadWriter) {
 	core.EvalAndRespond(cmd, conn)
 }
 
+// Handler starts the TCP listener and enters the event loop.
 func Handler() {
 	listener, err := createNonBlockingListener("0.0.0.0:8080")
 	if err != nil {

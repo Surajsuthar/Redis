@@ -8,6 +8,7 @@ import (
 
 func resetStore() {
 	store = make(map[string]*Obj)
+	keyspaceStat = [4]map[string]int{}
 }
 
 func TestEvalAndRespondSetGetAndDel(t *testing.T) {
@@ -50,7 +51,7 @@ func TestSetWithEXExpiresKey(t *testing.T) {
 func TestExpireAndTTL(t *testing.T) {
 	resetStore()
 
-	PUT("name", NewObj("suraj", -1))
+	PUT("name", NewObj("suraj", -1, OBJ_TYPE_STRING, OBJ_ENCODING_EMBSTR))
 
 	if got := string(evalEXPIRE([]string{"name", "1"}, nil)); got != ":1\r\n" {
 		t.Fatalf("unexpected EXPIRE response: %q", got)
